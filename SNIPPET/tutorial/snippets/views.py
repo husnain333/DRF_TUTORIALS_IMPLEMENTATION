@@ -7,9 +7,13 @@ from snippets.serializers import SnippetSerializer
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
+from rest_framework import viewsets
 from rest_framework.views import APIView
-from rest_framework.renderers import JSONRenderer
+from rest_framework.renderers import JSONRenderer, HTMLFormRenderer, TemplateHTMLRenderer, StaticHTMLRenderer, BrowsableAPIRenderer
 from rest_framework.decorators import renderer_classes
+from rest_framework import generics
+from rest_framework.permissions import AllowAny
+from .renderers import UppercaseRenderer
 # @csrf_exempt
 # def snippet_list(request):
 #     if request.method == 'GET':
@@ -104,3 +108,34 @@ def snippet_count(request, format=None):
     snippet_count = Snippet.objects.count()
     content = {'snippet_count': snippet_count}
     return Response(content, content_type='application/json', headers={'Indent': '4'})
+
+# class snippet_details(generics.RetrieveAPIView):
+#     queryset = Snippet.objects.all()
+
+#     renderer_classes = [TemplateHTMLRenderer]
+
+#     def get(self, request, *args, **kwargs):
+#         self.object = self.get_object()
+#         return Response({'snippet': self.object}, template_name='snippets/snippet_detail.html')
+
+@api_view(['GET'])
+@renderer_classes([StaticHTMLRenderer])
+def simple_html_view(request):
+    data = '<html><body><h1>Hello, world</h1></body></html>'
+    return Response(data)
+
+# class snippetView(viewsets.ReadOnlyModelViewSet):
+#     queryset = Snippet.objects.all()
+#     serializer_class = SnippetSerializer
+#     permission_classes = [AllowAny]
+
+#     renderer_classes = [JSONRenderer,BrowsableAPIRenderer]
+
+
+
+class snippetView(viewsets.ReadOnlyModelViewSet):
+    queryset = Snippet.objects.all()
+    serializer_class = SnippetSerializer
+    permission_classes = [AllowAny]
+    renderer_classes = [ UppercaseRenderer]
+
