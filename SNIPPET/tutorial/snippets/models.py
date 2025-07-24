@@ -1,7 +1,7 @@
 from django.db import models
 from pygments.lexers import get_all_lexers
 from pygments.styles import get_all_styles
-
+from django.core.validators import RegexValidator
 LEXERS = [item for item in get_all_lexers() if item[1]]
 LANGUAGE_CHOICES = sorted([(item[1][0], item[0]) for item in LEXERS])
 STYLE_CHOICES = sorted([(item, item) for item in get_all_styles()])
@@ -14,6 +14,49 @@ class Snippet(models.Model):
     linenos = models.BooleanField(default=False)
     language = models.CharField(choices=LANGUAGE_CHOICES, default='python', max_length=100)
     style = models.CharField(choices=STYLE_CHOICES, default='friendly', max_length=100)
-
+#    project = models.ForeignKey('Project', related_name='snippets', on_delete=models.CASCADE, null=True, blank=True)
     class Meta:
         ordering = ['created']
+    
+    
+
+class Project(models.Model):
+    title = models.CharField(max_length=100)
+    description = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+class ProjectManager(models.Manager):
+    def create(self,title, description=None):
+        project = Project(title=title, description=description)
+        project.save()
+        snippet = Snippet(created=project.created_at, title=title, code='', linenos=False, language='python', style='friendly')
+        snippet.save()
+        return project
+
+class User(models.Model):
+    username = models.CharField(unique=True)
+    email = models.EmailField(unique=True)
+    password = models.CharField(max_length=100)
+    checkRejex = RegexValidator(regex=r'^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{8,}$')
+    slug = models.SlugField(max_length=100, unique=True)
+    url = models.URLField(max_length=200, blank=True)
+    UUID = models.UUIDField(unique=True, editable=False)
+    file_path = models.FilePathField(path="/path/to/files", match=".*\.txt$", recursive=True, max_length=100)
+    ipadress = models.GenericIPAddressField(protocol='both', unpack_ipv4=True, null=True, blank=True)
+    amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    date_joined = models.DateTimeField(auto_now_add=True)
+    float1 = models.FloatField(default=0.0)
+    slarayDate = models.DateField(auto_now=True)
+    timestarted = models.TimeField(auto_now_add=True, null=True, blank=True)
+    shift_duration = models.DurationField(default='00:00:00')
+    resume = models.FileField(upload_to='resumes/', max_length=100, null=True, blank=True)
+    pic = models.ImageField(upload_to='profile_pics/', max_length=100, null=True, blank=True)
+    
+
+
+    class Meta:
+        ordering = ['username']
