@@ -2,8 +2,8 @@ from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.parsers import JSONParser
-from snippets.models import Snippet, User, Project
-from snippets.serializers import SnippetSerializer, UserSerializer, ProjectSerializer
+from snippets.models import Snippet
+from snippets.serializers import SnippetSerializer, ProjectSerializer, UserSerializer
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
@@ -15,6 +15,9 @@ from rest_framework import generics
 from rest_framework.permissions import AllowAny
 from rest_framework.decorators import permission_classes
 from .renderers import UppercaseRenderer
+from collections import defaultdict
+from rest_framework.permissions import IsAuthenticated
+
 # @csrf_exempt
 # def snippet_list(request):
 #     if request.method == 'GET':
@@ -29,74 +32,75 @@ from .renderers import UppercaseRenderer
 #             return JsonResponse(serializer.data, status = 201)
 #         return JsonResponse(serializer.errors, status = 400)
 
-# @csrf_exempt
-# def snippet_detail(request, pk):
+@csrf_exempt
+def snippet_detail(request, pk):
     
-#     try:
-#         snippet = Snippet.objects.get(pk=pk)
-#     except Snippet.DoesNotExist:
-#         return HttpResponse(status=404)
-
-#     if request.method == 'GET':
-#         serializer = SnippetSerializer(snippet)
-#         return JsonResponse(serializer.data)
-
-#     elif request.method == 'PUT':
-#         data = JSONParser().parse(request)
-#         serializer = SnippetSerializer(snippet, data=data)
-#         if serializer.is_valid():
-#             serializer.save()
-#             return JsonResponse(serializer.data)
-#         return JsonResponse(serializer.errors, status=400)
-
-#     elif request.method == 'DELETE':
-#         snippet.delete()
-#         return HttpResponse(status=204)
-
-@api_view(['GET', 'POST'])
-def snippet_list(request, format = None):
-    """
-    List all code snippets, or create a new snippet.
-    """
-    if request.method == 'GET':
-        snippets = Snippet.objects.all()
-        serializer = SnippetSerializer(snippets, many=True)
-        return Response(serializer.data)
-
-    elif request.method == 'POST':
-        serializer = SnippetSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-@api_view(['GET', 'PUT', 'DELETE'])
-@permission_classes([AllowAny])
-def snippet_detail(request, pk,format = None):
-    """
-    Retrieve, update or delete a code snippet.
-    """
-
     try:
         snippet = Snippet.objects.get(pk=pk)
     except Snippet.DoesNotExist:
-        return Response(status=status.HTTP_404_NOT_FOUND)
+        return HttpResponse(status=404)
 
     if request.method == 'GET':
-        permission_classes = [AllowAny]
         serializer = SnippetSerializer(snippet)
-        return Response(serializer.data)
+        return JsonResponse(serializer.data)
 
     elif request.method == 'PUT':
-        serializer = SnippetSerializer(snippet, data=request.data)
+        data = JSONParser().parse(request)
+        serializer = SnippetSerializer(snippet, data=data)
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return JsonResponse(serializer.data)
+        return JsonResponse(serializer.errors, status=400)
 
     elif request.method == 'DELETE':
         snippet.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return HttpResponse(status=204)
+
+# @api_view(['GET', 'POST'])
+# def snippet_list(request, format = None):
+#     """
+#     List all code snippets, or create a new snippet.
+#     """
+#     if request.method == 'GET':
+#         snippets = Snippet.objects.all()
+#         serializer = SnippetSerializer(snippets, many=True)
+#         return Response(serializer.data)
+
+#     elif request.method == 'POST':
+#         serializer = SnippetSerializer(data=request.data)
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response(serializer.data, status=status.HTTP_201_CREATED)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+# @api_view(['GET', 'PUT', 'DELETE'])
+# @permission_classes([AllowAny])
+# @renderer_classes([JSONRenderer, BrowsableAPIRenderer])
+# def snippet_detail(request, pk,format = None):
+#     """
+#     Retrieve, update or delete a code snippet.
+#     """
+
+#     try:
+#         snippet = Snippet.objects.get(pk=pk)
+#     except Snippet.DoesNotExist:
+#         return Response(status=status.HTTP_404_NOT_FOUND)
+
+#     if request.method == 'GET':
+#         permission_classes = [AllowAny]
+#         serializer = SnippetSerializer(snippet)
+#         return Response(serializer.data)
+
+#     elif request.method == 'PUT':
+#         serializer = SnippetSerializer(snippet, data=request.data)
+#         if serializer.is_valid():
+#             serializer.save()
+#             return Response(serializer.data)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+#     elif request.method == 'DELETE':
+#         snippet.delete()
+#         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 # class SnippetCount(APIView):
@@ -123,11 +127,11 @@ def snippet_count(request, format=None):
 #         self.object = self.get_object()
 #         return Response({'snippet': self.object}, template_name='snippets/snippet_detail.html')
 
-@api_view(['GET'])
-@renderer_classes([StaticHTMLRenderer])
-def simple_html_view(request):
-    data = '<html><body><h1>Hello, world</h1></body></html>'
-    return Response(data)
+# @api_view(['GET'])
+# @renderer_classes([StaticHTMLRenderer])
+# def simple_html_view(request):
+#     data = '<html><body><h1>Hello, world</h1></body></html>'
+#     return Response(data)
 
 # class snippetView(viewsets.ReadOnlyModelViewSet):
 #     queryset = Snippet.objects.all()
@@ -138,11 +142,11 @@ def simple_html_view(request):
 
 
 
-class snippetView(viewsets.ReadOnlyModelViewSet):
-    queryset = Snippet.objects.all()
-    serializer_class = SnippetSerializer
-    permission_classes = [AllowAny]
-    renderer_classes = [ UppercaseRenderer]
+# class snippetView(viewsets.ReadOnlyModelViewSet):
+#     queryset = Snippet.objects.all()
+#     serializer_class = SnippetSerializer
+#     permission_classes = [AllowAny]
+#     renderer_classes = [ UppercaseRenderer]
 
 # RUN IT IN SHELL
 # snippet = Snippet.objects.first()
@@ -183,18 +187,63 @@ import io
 #         return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
 
-class UserViewSet(viewsets.ModelViewSet):
+# class UserViewSet(viewsets.ModelViewSet):
+#     queryset = User.objects.all()
+#     serializer_class = UserSerializer
+#     permission_classes = [AllowAny]
+#     renderer_classes = [JSONRenderer, BrowsableAPIRenderer]
+
+
+# class ProjectViewSet(viewsets.ModelViewSet):
+#     #queryset = Project.objects.prefetch_related('snippets')
+#     #queryset = Project.objects.all()
+#     projects = Project.objects.all()
+#     for project in projects:
+#         project.snippets_list = list(Snippet.objects.filter(project=project))
+#     queryset = projects
+#     serializer_class = ProjectSerializer
+#     permission_classes = [AllowAny]
+#     renderer_classes = [JSONRenderer, BrowsableAPIRenderer]
+#     lookup_field = 'id'
+
+class createSnippet(generics.CreateAPIView):
+    queryset = Snippet.objects.all()
+    serializer_class = SnippetSerializer
+    permission_classes = [IsAuthenticated]
+    renderer_classes = [JSONRenderer, BrowsableAPIRenderer]
+
+
+class ProjectViewSet(viewsets.ModelViewSet):
+    
+    queryset = Snippet.objects.all()
+    serializer_class = ProjectSerializer
+    permission_classes = [AllowAny]
+    renderer_classes = [JSONRenderer, BrowsableAPIRenderer]
+    lookup_field = 'id'
+
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
+
+class SnippetView(generics.ListCreateAPIView):
+    
+    #queryset = Snippet.objects.all()
+    queryset = Snippet.objects.select_related("project").all()
+    serializer_class = SnippetSerializer
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    renderer_classes = [ JSONRenderer, BrowsableAPIRenderer]
+
+from django.contrib.auth.models import User
+
+
+class UserList(generics.ListAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
     permission_classes = [AllowAny]
     renderer_classes = [JSONRenderer, BrowsableAPIRenderer]
 
 
-class ProjectViewSet(viewsets.ModelViewSet):
-    queryset = Project.objects.prefetch_related('snippets')
-    serializer_class = ProjectSerializer
+class UserDetail(generics.RetrieveAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
     permission_classes = [AllowAny]
     renderer_classes = [JSONRenderer, BrowsableAPIRenderer]
-    lookup_field = 'id'
-
 
