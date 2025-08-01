@@ -1,6 +1,23 @@
 from rest_framework import serializers
-from snippets.models import Snippet, LANGUAGE_CHOICES, STYLE_CHOICES, Project
+from snippets.models import Snippet, LANGUAGE_CHOICES, STYLE_CHOICES
 from rest_framework.validators import UniqueTogetherValidator
+from django.contrib.auth.models import User
+
+class UserSerializer(serializers.HyperlinkedModelSerializer):
+    snippets = serializers.HyperlinkedRelatedField(many=True, view_name='snippet-detail', read_only=True)
+
+    class Meta:
+        model = User
+        fields = ['url', 'id', 'username', 'snippets']
+
+class SnippetSerializer(serializers.HyperlinkedModelSerializer):
+    owner = serializers.ReadOnlyField(source='owner.username')
+    highlight = serializers.HyperlinkedIdentityField(view_name='snippet-highlight', format='html')
+
+    class Meta:
+        model = Snippet
+        fields = ['url', 'id', 'highlight', 'owner',
+                  'title', 'code', 'linenos', 'language', 'style']
 
 
 # class SnippetSerializer(serializers.Serializer):
@@ -42,10 +59,6 @@ from rest_framework.validators import UniqueTogetherValidator
 #             raise serializers.ValidationError("Code must contain a print statement")
 #         return value
 
-# class SnippetSerializer(serializers.ModelSerializer):
-#     class Meta:
-#         model = Snippet
-#         exclude = ['created']
 
 
 # class SnippetSerializer(serializers.ModelSerializer):
@@ -241,59 +254,59 @@ from rest_framework.validators import UniqueTogetherValidator
 
 
 
-class TrackCodeFieldWords(serializers.CharField):
-    def to_internal_value(self, data):
-        alphabet_count = sum(c.isalpha() for c in data)
-        data_with_count = f"{data}  // Alphabet Count: {alphabet_count}"
-        flattened_code = ''.join(data_with_count.splitlines())
-        return super().to_internal_value(flattened_code)
+# class TrackCodeFieldWords(serializers.CharField):
+#     def to_internal_value(self, data):
+#         alphabet_count = sum(c.isalpha() for c in data)
+#         data_with_count = f"{data}  // Alphabet Count: {alphabet_count}"
+#         flattened_code = ''.join(data_with_count.splitlines())
+#         return super().to_internal_value(flattened_code)
 
-class SnippetSerializer(serializers.ModelSerializer):
-#    project_title = serializers.CharField(source='project.title', read_only=True)
-    # Uncomment the line below if you want to use the custom field for tracking alphabet count
-    # code = TrackCodeFieldWords()
+# class SnippetSerializer(serializers.ModelSerializer):
+# #    project_title = serializers.CharField(source='project.title', read_only=True)
+#     # Uncomment the line below if you want to use the custom field for tracking alphabet count
+#     # code = TrackCodeFieldWords()
 
-    class Meta:
-        model = Snippet
-        # fields = ['id', 'title', 'code', 'linenos', 'language', 'style', 'project_title','owner', 'highlighted']
-        fields = '__all__'
+#     class Meta:
+#         model = Snippet
+#         # fields = ['id', 'title', 'code', 'linenos', 'language', 'style', 'project_title','owner', 'highlighted']
+#         fields = '__all__'
 
-class ProjectSerializer(serializers.ModelSerializer):
-    snippets = SnippetSerializer(many=True)
+# class ProjectSerializer(serializers.ModelSerializer):
+#     snippets = SnippetSerializer(many=True)
 
-    class Meta:
-        model = Project
-        fields = ['id', 'title', 'description', 'created_at', 'updated_at', 'snippets']
+#     class Meta:
+#         model = Project
+#         fields = ['id', 'title', 'description', 'created_at', 'updated_at', 'snippets']
     
-    def get_snippets(self, obj):
-        return SnippetSerializer(obj.snippets.all(), many=True).data
+#     def get_snippets(self, obj):
+#         return SnippetSerializer(obj.snippets.all(), many=True).data
 
-from django.contrib.auth.models import User
-from rest_framework.validators import UniqueForDateValidator
+# from django.contrib.auth.models import User
+# from rest_framework.validators import UniqueForDateValidator
 
-class UserSerializer(serializers.ModelSerializer):
-    snippets = serializers.PrimaryKeyRelatedField(many=True, queryset=Snippet.objects.all())
+# class UserSerializer(serializers.ModelSerializer):
+#     snippets = serializers.PrimaryKeyRelatedField(many=True, queryset=Snippet.objects.all())
 
-    class Meta:
-        model = User
-        fields = ['id', 'username','email','Password','date_joined','snippets']
-        # validators = [
-        #     UniqueTogetherValidator(
-        #         queryset=User.objects.all(),
-        #         fields=('username', 'email')
-        #     )
-        # ]
-        # validator = UniqueForDateValidator(
-        #     queryset=User.objects.all(),
-        #     field_name='username',
-        #     date_field='date_joined'
-        # )
-        def salary_div_by_1000(self, value):
-            if value % 1000 != 0:
-                raise serializers.ValidationError("Salary must be a multiple of 1000")
-            return value
-        extra_kwargs = { 'email': {'required':False}}
-        validator = []
+#     class Meta:
+#         model = User
+#         fields = ['id', 'username','email','Password','date_joined','snippets']
+#         # validators = [
+#         #     UniqueTogetherValidator(
+#         #         queryset=User.objects.all(),
+#         #         fields=('username', 'email')
+#         #     )
+#         # ]
+#         # validator = UniqueForDateValidator(
+#         #     queryset=User.objects.all(),
+#         #     field_name='username',
+#         #     date_field='date_joined'
+#         # )
+#         def salary_div_by_1000(self, value):
+#             if value % 1000 != 0:
+#                 raise serializers.ValidationError("Salary must be a multiple of 1000")
+#             return value
+#         extra_kwargs = { 'email': {'required':False}}
+#         validator = []
 
 
 
